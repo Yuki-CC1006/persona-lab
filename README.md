@@ -1,5 +1,9 @@
 # Persona Lab
 
+[![CI](https://github.com/Yuki-CC1006/persona-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Yuki-CC1006/persona-lab/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+
 A local-first **persona lab**: turn conversation evidence from one relationship into long-term memories that are traceable, reviewable, and deletable, and deliver a reproducible quality baseline for retrieval and refusal.
 
 It does not predict anyone, and it does not make judgments for you. Tendency inference is an **experimental** feature that arrives with evidence: it gives a confidence level, supporting evidence, and counterexamples, and it clearly refuses when the evidence is insufficient.
