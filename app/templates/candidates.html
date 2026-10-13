@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Review candidates · {{ brand }}{% endblock %}
+
+{% macro review_row(entry) -%}
+{% set c = entry.candidate %}
+<article class="review-row" role="listitem" data-id="{{ c.id }}">
+  <label class="review-check">
+    <input type="checkbox" class="cand-check" name="ids" value="{{ c.id }}"
+           aria-label="Select candidate memory: {{ c.content[:40] }}" />
+  </label>
+  <div class="review-body">
+    <div class="review-meta">
+      <span class="type-chip type-{{ c.memory_type }}">{{ c.memory_type }}</span>
+      <span class="conf {% if c.confidence >= 0.8 %}hi{% elif c.confidence < 0.55 %}lo{% endif %}">{{ '%.0f'|format(c.confidence * 100) }}%</span>
+      {% if c.is_inference %}<span class="infer">inferred</span>{% endif %}
+      {% if entry.kind == 'replacement' %}<span class="chip warn">Suggested replacement</span>{% endif %}
+      {% if c.evidence %}
+      <details class="review-ev">
+        <summary>Evidence {{ c.evidence|length }}</summary>
+        <ul>
+          {% for e in c.evidence %}
+          <li>{% if e.is_counterexample %}<em>Counterexample</em> {% endif %}{{ e.quote or '(no excerpt)' }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </div>
+    {% if entry.target %}
+    <div class="review-compare">
+      <div class="compare-col">
+        <div class="tiny muted">New fact (pending)</div>
+        <p>{{ c.content }}</p>
+      </div>
+      <div class="compare-col">
+        <div class="tiny muted">Current fact #{{ entry.target.id }} · marked superseded on confirm, not deleted</div>
+        <p><s>{{ entry.target.content }}</s></p>
+      </div>
+    </div>
+    {% else %}
+    <p class="review-text">{{ c.content }}</p>
+    {% endif %}
+  </div>
+  <div class="review-row-actions">
+    <button type="submit" formaction="/memories/{{ c.id }}/confirm" formmethod="post"
+            class="icon-btn ok" title="Confirm">✓</button>
+    <button type="submit" formaction="/memories/{{ c.id }}/reject" formmethod="post"
+            class="icon-btn no" title="Reject">✕</button>
+    <a class="icon-btn link" href="/memories/{{ c.id }}" title="Details">→</a>
+  </div>
+</article>
+{%- endmacro %}
+
+{% block main %}
+<div class="page page-wide review-page">
+  <header class="review-head">
+    <div>
+      <h1>Review candidates</h1>
+      <p class="muted">Select to process in bulk; unconfirmed items never enter the profile. Suggested replacements are compared in groups and don't affect existing facts until confirmed.</p>
+    </div>
+    <div class="review-stat" title="Total pending">{{ stats.candidates }}</div>
+  </header>
+
+  {% if flash %}
+  <div class="alert success">{{ flash }}</div>
+  {% endif %}
+
+{% if candidates %}
+  <form id="bulk-form" action="/memories/candidates/bulk" method="post">
+    <div class="review-toolbar">
+      <label class="review-select-all">
+        <input type="checkbox" id="select-all" />
+        <span class="review-select-label">Select all on this page · {{ candidates|length }}</span>
+        <span class="review-selected" id="selected-count" hidden></span>
+      </label>
+      <div class="review-toolbar-actions">
+        <button type="submit" name="action" value="confirm" class="btn-primary" id="btn-confirm-selected">Confirm selected</button>
+        <button type="submit" name="action" value="reject" class="btn-ghost"
+                onclick="return confirm('Reject the selected candidates?')">Reject selected</button>
+        <span class="review-sep" aria-hidden="true"></span>
+        <button type="submit" name="action" value="confirm_high" class="btn-ghost"
+                onclick="return confirm('Confirm all candidates with confidence ≥ 0.7?')">High confidence</button>
+        <button type="submit" name="action" value="confirm_all" class="btn-ghost danger-text"
+                onclick="return confirm('Confirm all {{ stats.candidates }} pending items?')">Confirm all</button>
+      </div>
+    </div>
+
+    <div class="review-list" role="list">
+      {% for group in groups %}
+        {% if group.kind == 'conflict' %}
+        <section class="conflict-group">
+          <header class="conflict-head">
+            <span class="chip warn">Conflict group</span>
+            <span class="muted tiny">{{ group['items']|length }} candidates · {{ group.replacement_count }} suggested replacements</span>
+          </header>
+          {% for entry in group['items'] %}
+          {{ review_row(entry) }}
+          {% endfor %}
+        </section>
+        {% else %}
+          {% for entry in group['items'] %}
+          {{ review_row(entry) }}
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </form>
+{% else %}
+  <p class="muted review-empty">No candidates to review. Import chats or write a note to distill some.</p>
+{% endif %}
+</div>
+{% endblock %}

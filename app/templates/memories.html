@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Memories · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+<h1>Memories</h1>
+
+<section class="panel">
+  <form method="get" action="/memories" class="row">
+    <input name="q" value="{{ q }}" placeholder="Search content" aria-label="Search memories by content" />
+    <select name="status" aria-label="Filter by status">
+      <option value="confirmed" {% if status=='confirmed' %}selected{% endif %}>confirmed</option>
+      <option value="candidate" {% if status=='candidate' %}selected{% endif %}>candidate</option>
+      <option value="rejected" {% if status=='rejected' %}selected{% endif %}>rejected</option>
+      <option value="disabled" {% if status=='disabled' %}selected{% endif %}>disabled</option>
+      <option value="all" {% if status=='all' %}selected{% endif %}>all</option>
+    </select>
+    <select name="memory_type" aria-label="Filter by type">
+      <option value="">All types</option>
+      {% for t in types %}
+      <option value="{{ t }}" {% if memory_type==t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <input type="hidden" name="sort" value="{{ sort }}" />
+    <input type="hidden" name="dir" value="{{ dir }}" />
+    <button type="submit">Filter</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Add a memory quickly</h2>
+  <p class="muted tiny">Type it in plain language and the type is detected automatically. For example: Alex dislikes horror movies</p>
+  {% if created_memory %}
+  <div class="alert" style="background:rgba(129,201,149,0.12);color:var(--green);border:1px solid rgba(129,201,149,0.3)">
+    Added: <a href="/memories/{{ created_memory.id }}">#{{ created_memory.id }}</a>
+    · type <strong>{{ created_memory.memory_type }}</strong>
+    {% if created_memory.subject %} · subject {{ created_memory.subject }}{% endif %}
+    {% if created_memory.notes %}<div class="tiny muted" style="margin-top:0.35rem">{{ created_memory.notes }}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% endif %}
+  <form id="memory-create-form" action="/memories/create" method="post" class="stack">
+    <textarea name="content" rows="2" required placeholder="Alex dislikes horror movies"
+              aria-label="Content to remember"></textarea>
+    <div class="row">
+      <input name="subject" placeholder="Subject nickname (optional; inferred from the sentence)" aria-label="Subject nickname (optional)" />
+      <input type="hidden" name="memory_type" value="auto" />
+      <button type="submit" id="memory-create-btn">Add and classify automatically</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>List</h2>
+    <span class="muted tiny">{{ total|default(memories|length) }} total{% if (total_pages|default(1)) > 1 %} · page {{ page }}/{{ total_pages }}{% endif %}</span>
+  </div>
+  {% if memories %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          {% for col, label in [('id','ID'),('type','Type'),('status','Status'),('confidence','Confidence'),('content','Content'),('conflict','Conflict group')] %}
+          <th>
+            <a class="sort-link{% if sort==col %} active{% endif %}"
+               href="/memories?{{ filter_qs }}&sort={{ col }}&dir={{ 'asc' if sort==col and dir=='desc' else 'desc' }}">
+              {{ label }}{% if sort==col %} <span class="sort-ind">{{ '↑' if dir=='asc' else '↓' }}</span>{% endif %}
+            </a>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for m in memories %}
+        <tr>
+          <td><a href="/memories/{{ m.id }}">#{{ m.id }}</a></td>
+          <td>{{ m.memory_type }}</td>
+          <td>{{ m.status }}</td>
+          <td>{{ '%.2f'|format(m.confidence) }}</td>
+          <td>{{ m.content }}</td>
+          <td>{{ m.conflict_group or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if (total_pages|default(1)) > 1 %}
+  <nav class="pager" aria-label="Pagination">
+    {% if page > 1 %}
+    <a href="/memories?{{ qs }}&page={{ page - 1 }}">Previous</a>
+    {% else %}
+    <span class="disabled">Previous</span>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      {% if p == page %}
+      <span class="current">{{ p }}</span>
+      {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+      <a href="/memories?{{ qs }}&page={{ p }}">{{ p }}</a>
+      {% elif p == page - 3 or p == page + 3 %}
+      <span class="ellipsis">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="/memories?{{ qs }}&page={{ page + 1 }}">Next</a>
+    {% else %}
+    <span class="disabled">Next</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <p class="muted">No matching memories.</p>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Notes · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <header class="page-hero">
+    <div>
+      <p class="eyebrow">Notes</p>
+      <h1>Notes</h1>
+      <p class="lead">Jot down what happened, then let AI distill it into candidate memories for review.</p>
+    </div>
+    <div class="format-chips">
+      <span class="chip">{% if llm_configured %}DeepSeek available{% else %}Offline rules{% endif %}</span>
+      <a class="chip" href="/memories/candidates">Review candidates →</a>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Write a note</h2></div>
+    <form action="/diary/create" method="post" class="stack">
+      <div class="row">
+        <label>Date
+          <input type="date" name="entry_date" value="{{ today }}" />
+        </label>
+        <label>Title (optional)
+          <input name="title" placeholder="For example: dinner with them on Friday" />
+        </label>
+        <label>Mood (optional)
+          <input name="mood" placeholder="Calm / happy / a bit tired" />
+        </label>
+      </div>
+      <label>Subject nickname (optional)
+        <input name="subject_name" placeholder="Profile subject, e.g. Alex" />
+      </label>
+      <label>Body
+        <textarea name="content" rows="7" required placeholder="What happened? What did they say, what do they like, what details are worth remembering..."></textarea>
+      </label>
+      <div class="row actions">
+        <button type="submit">Save</button>
+        <button type="submit" name="extract_now" value="yes" class="secondary">Save and distill with AI</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>History</h2>
+      <form method="get" action="/diary" class="row" style="margin:0">
+        <input name="q" value="{{ q }}" placeholder="Search notes" aria-label="Search notes" />
+        <button type="submit" class="secondary">Search</button>
+      </form>
+    </div>
+
+    {% if entries %}
+    <div class="job-list">
+      {% for e in entries %}
+      <a class="job-card" href="/diary/{{ e.id }}">
+        <div class="job-icon">📝</div>
+        <div class="job-body">
+          <div class="job-title">
+            {% if e.title %}{{ e.title }}{% else %}{{ e.content[:28] }}{% if e.content|length > 28 %}…{% endif %}{% endif %}
+          </div>
+          <div class="job-sub muted">
+            {{ e.entry_date.strftime('%Y-%m-%d') if e.entry_date else '—' }}
+            · {{ e.status }}
+            · {{ e.candidates_created or 0 }} distilled
+            {% if e.mood %} · {{ e.mood }}{% endif %}
+          </div>
+        </div>
+        <span class="chip">View</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-hero" style="padding:1.5rem 0.5rem">
+      <div class="empty-orb"></div>
+      <h2>No notes yet</h2>
+      <p class="muted">Write your first one above. Distilled candidates appear under Review candidates.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

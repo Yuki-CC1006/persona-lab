@@ -1,0 +1,13 @@
+[
+  {"sender": "Alex", "content": "I want an unsweetened Americano today, not too bitter", "timestamp": "2026-03-01 10:12:00", "type": "text"},
+  {"sender": "Sam", "content": "Okay, I'll note that down. Do you usually prefer staying home or going out on weekends?", "timestamp": "2026-03-01 10:13:20", "type": "text"},
+  {"sender": "Alex", "content": "On weekends I'd rather stay home and watch movies; crowds wear me out", "timestamp": "2026-03-01 10:14:05", "type": "text"},
+  {"sender": "Sam", "content": "What about a last-minute dinner on Friday?", "timestamp": "2026-03-01 10:15:00", "type": "text"},
+  {"sender": "Alex", "content": "After working late on Friday I don't really want last-minute plan changes; better to tell me a day ahead", "timestamp": "2026-03-01 10:16:10", "type": "text"},
+  {"sender": "Alex", "content": "Oh and please don't order cilantro for me again, I really don't like it", "timestamp": "2026-03-01 10:17:00", "type": "text"},
+  {"sender": "Sam", "content": "Got it. When's your birthday again?", "timestamp": "2026-03-01 10:18:00", "type": "text"},
+  {"sender": "Alex", "content": "November 22, don't forget haha. Backup contact number is 13800138000", "timestamp": "2026-03-01 10:19:30", "type": "text"},
+  {"sender": "Alex", "content": "My mom is visiting next week, so don't bring up work stress then", "timestamp": "2026-03-02 21:05:00", "type": "text"},
+  {"sender": "Sam", "content": "Okay, so shall we make hotpot at home on Saturday?", "timestamp": "2026-03-02 21:06:00", "type": "text"},
+  {"sender": "Alex", "content": "Okay, but the hotpot should be mildly spicy; my stomach hasn't been great lately", "timestamp": "2026-03-02 21:07:15", "type": "text"}
+]

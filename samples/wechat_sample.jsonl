@@ -1,0 +1,3 @@
+{"sender": "Alex", "content": "I don't like being woken up by a burst of messages on Monday mornings", "timestamp": 1741132800, "type": "text"}
+{"sender": "Sam", "content": "Then I'll wait until noon to ask if you want coffee", "timestamp": 1741132860, "type": "text"}
+{"sender": "Alex", "content": "I want my coffee iced. Don't send to alice@example.com anymore, use the new one", "timestamp": 1741132920, "type": "text"}

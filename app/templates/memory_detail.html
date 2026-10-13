@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Memory #{{ memory.id }} · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+<h1>Memory #{{ memory.id }}</h1>
+
+<section class="panel">
+  <form action="/memories/{{ memory.id }}/update" method="post" class="stack">
+    <label>Content
+      <textarea name="content" rows="3" required>{{ memory.content }}</textarea>
+    </label>
+    <div class="row">
+      <label>Type
+        <select name="memory_type">
+          {% for t in types %}
+          <option value="{{ t }}" {% if t == memory.memory_type %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Status
+        <select name="status">
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if s == memory.status %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Confidence
+        <input type="number" name="confidence" min="0" max="1" step="0.01" value="{{ memory.confidence }}" />
+      </label>
+    </div>
+    <label>Notes
+      <textarea name="notes" rows="2">{{ memory.notes or '' }}</textarea>
+    </label>
+    <div class="row actions">
+      <button type="submit">Save</button>
+      <button formaction="/memories/{{ memory.id }}/delete" formmethod="post" class="danger"
+              onclick="return confirm('Delete this memory?')">Delete</button>
+    </div>
+  </form>
+  <p class="muted">
+    Inferred: {{ memory.is_inference }} ·
+    Conflict group: {{ memory.conflict_group or '—' }} ·
+    Reviewed at: {{ memory.reviewed_at or '—' }}
+  </p>
+
+  <h3>Provenance</h3>
+  <ul class="stats">
+    <li>System learned at: {{ memory.created_at or '—' }}</li>
+    <li>Validity: {{ memory.valid_from or 'no start limit' }} → {{ memory.valid_to or 'no end limit' }}</li>
+    <li>Superseded at: {{ memory.superseded_at or 'still valid' }}</li>
+    <li>Source:
+      {% if memory.source_diary_id %}
+        <a href="/diary/{{ memory.source_diary_id }}">Note #{{ memory.source_diary_id }}</a>{% if source_diary %} ({{ source_diary.entry_date.strftime('%Y-%m-%d') if source_diary.entry_date else '—' }}){% endif %}
+      {% elif memory.source_chunk_id %}
+        Chat chunk #{{ memory.source_chunk_id }}{% if memory.source_run_id %} · analysis run #{{ memory.source_run_id }}{% endif %}
+      {% elif memory.evidence %}
+        Evidence chain ({{ memory.evidence|length }})
+      {% else %}
+        Added manually
+      {% endif %}
+    </li>
+    <li>Notes: {{ memory.notes or '—' }}</li>
+  </ul>
+
+  {% if replacement_target %}
+  <div class="alert warn">
+    This candidate suggests replacing the current fact
+    <a href="/memories/{{ replacement_target.id }}">#{{ replacement_target.id }}</a>:
+    {{ replacement_target.content }}
+    <div class="tiny muted">Confirming marks the old fact as superseded without deleting it; rejecting leaves the old fact unchanged.</div>
+  </div>
+  {% endif %}
+
+  {% if superseded_by %}
+  <div class="alert">
+    This memory was superseded by
+    <a href="/memories/{{ superseded_by.id }}">#{{ superseded_by.id }}</a>: {{ superseded_by.content }}
+  </div>
+  {% endif %}
+
+  {% if replaced %}
+  <div class="alert warn">
+    This memory replaced the following earlier versions (kept for traceability):
+    <ul>
+      {% for old in replaced %}
+      <li><a href="/memories/{{ old.id }}">#{{ old.id }}</a> {{ old.content }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% elif memory.supersedes_id and not superseded_by %}
+  <p class="muted tiny">The replacement record points to #{{ memory.supersedes_id }} (may have been cleaned up).</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Evidence chain</h2>
+  {% if memory.evidence %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Evidence ID</th><th>Message ID</th><th>Counterexample?</th><th>Sender</th><th>Time</th><th>Excerpt</th></tr></thead>
+      <tbody>
+      {% for e in memory.evidence %}
+        <tr>
+          <td>{{ e.id }}</td>
+          <td>{{ e.message_id }}</td>
+          <td>{{ 'Yes' if e.is_counterexample else 'No' }}</td>
+          <td>{{ e.message.sender if e.message else '—' }}</td>
+          <td>{{ e.message.sent_at if e.message else '—' }}</td>
+          <td>{{ e.quote or (e.message.content[:200] if e.message else '') }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No linked evidence (may have been created manually).</p>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

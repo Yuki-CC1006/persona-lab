@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Profile overview · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page profile-page">
+  <header class="page-hero">
+    <div>
+      <p class="eyebrow">Profile</p>
+      <h1>{% if overview.total_confirmed %}{{ overview.subject_name }}'s profile overview{% else %}Profile overview{% endif %}</h1>
+      <p class="lead">Summarized from confirmed memories. Candidate memories never enter the profile.</p>
+    </div>
+    <div class="format-chips">
+      <a class="chip" href="/memories">Memories</a>
+      <a class="chip" href="/profile/export.md">Export Markdown</a>
+    </div>
+  </header>
+
+  <section class="panel advanced-entry">
+    <div class="panel-head">
+      <h2>Advanced view</h2>
+      <span class="muted tiny">Collapsed by default; open it only when needed</span>
+    </div>
+    <p class="muted tiny">The graph shows how types and highlights relate, as a supplementary view of the profile overview.</p>
+    <a class="btn secondary" href="/graph">Open graph</a>
+    <a class="btn secondary" href="/api/graph">View graph as JSON</a>
+  </section>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.total_confirmed }}</div>
+      <div class="stat-label">Confirmed memories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.high_confidence }}</div>
+      <div class="stat-label">High confidence ≥0.8</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.evidence_count }}</div>
+      <div class="stat-label">Evidence references</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.conflict_groups }}</div>
+      <div class="stat-label">Conflict groups</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.message_count }}</div>
+      <div class="stat-label">Raw messages</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ overview.candidate_count }}</div>
+      <div class="stat-label">Pending candidates</div>
+    </div>
+  </section>
+
+  {% if overview.total_confirmed == 0 %}
+  <section class="panel empty-profile">
+    <div class="empty-hero">
+      <div class="empty-orb" aria-hidden="true"></div>
+      <h2>Your profile is still blank</h2>
+      <p class="muted">That's fine — it's a normal starting point. Import chats, confirm a few memories, and this will take shape.</p>
+    </div>
+
+    <div class="guide-steps">
+      <a class="guide-card" href="/imports">
+        <span class="guide-num">1</span>
+        <div>
+          <strong>Import chats</strong>
+          <p class="muted">Upload WeChat JSON / JSONL</p>
+        </div>
+      </a>
+      <a class="guide-card" href="/memories/candidates">
+        <span class="guide-num">2</span>
+        <div>
+          <strong>Review candidates</strong>
+          <p class="muted">Only confirmed entries enter the profile{% if overview.candidate_count %} · {{ overview.candidate_count }} pending{% endif %}</p>
+        </div>
+      </a>
+      <a class="guide-card" href="/memories">
+        <span class="guide-num">3</span>
+        <div>
+          <strong>Or add manually</strong>
+          <p class="muted">Write a confirmed memory directly</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="placeholder-grid">
+      <div class="placeholder-card">
+        <span class="chip">Preference</span>
+        <p class="muted">For example: likes unsweetened Americano</p>
+      </div>
+      <div class="placeholder-card">
+        <span class="chip">Aversion</span>
+        <p class="muted">For example: dislikes cilantro</p>
+      </div>
+      <div class="placeholder-card">
+        <span class="chip">Habit</span>
+        <p class="muted">For example: prefers staying home on weekends</p>
+      </div>
+      <div class="placeholder-card">
+        <span class="chip">Communication</span>
+        <p class="muted">For example: uncomfortable with last-minute changes</p>
+      </div>
+    </div>
+  </section>
+  {% else %}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Type distribution</h2>
+    </div>
+    <div class="type-bars">
+      {% for b in overview.type_bars %}
+      <a class="type-bar-row" href="#type-{{ b.type }}">
+        <div class="type-bar-label">
+          <span class="dot" style="background:{{ b.color }}"></span>
+          {{ b.label }}
+        </div>
+        <div class="type-bar-track">
+          <div class="type-bar-fill" style="width:{{ (b.count / overview.max_type_count * 100)|round(1) }}%; background:{{ b.color }}"></div>
+        </div>
+        <div class="type-bar-count">{{ b.count }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if overview.highlights %}
+  <section class="panel">
+    <div class="panel-head"><h2>Profile highlights</h2></div>
+    <div class="highlight-grid">
+      {% for h in overview.highlights %}
+      <a class="highlight-card" href="/memories/{{ h.id }}">
+        <span class="chip" style="background:{{ h.color }}22; color:{{ h.color }}">{{ h.label }}</span>
+        <p>{{ h.content }}</p>
+        <div class="tiny muted">Confidence {{ '%.2f'|format(h.confidence) }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel profile-types">
+    <div class="panel-head">
+      <h2>Memories by category</h2>
+      <span class="muted tiny">Click to expand</span>
+    </div>
+    {% for s in overview.sections %}
+    <details class="type-fold" id="type-{{ s.type }}">
+      <summary>
+        <span class="dot" style="background:{{ s.color }}"></span>
+        <span class="type-fold-label">{{ s.label }}</span>
+        <span class="muted tiny">{{ s.count }} memories</span>
+      </summary>
+      <div class="memory-chips">
+        {% for item in s.memories %}
+        <a class="memory-chip" href="/memories/{{ item.id }}">
+          <span class="memory-chip-text">{{ item.content }}</span>
+          <span class="memory-chip-meta">
+            {{ '%.0f'|format(item.confidence * 100) }}%
+            {% if item.is_inference %}· inferred{% endif %}
+            {% if item.conflict_group %}· conflict{% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+      {% if s.count > s.memories|length %}
+      <a class="type-fold-more" href="/memories?status=confirmed&memory_type={{ s.type }}">View all {{ s.count }} →</a>
+      {% endif %}
+    </details>
+    {% endfor %}
+  </section>
+
+  {% endif %}
+</div>
+{% endblock %}

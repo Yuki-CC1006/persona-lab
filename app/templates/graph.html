@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Profile graph · {{ brand }}{% endblock %}
+{% block body_class %}graph-page-body{% endblock %}
+{% block main %}
+<div class="graph-layout">
+  <header class="graph-toolbar">
+    <div>
+      <p class="eyebrow">Graph</p>
+      <h1>Profile graph</h1>
+      <p class="muted tiny">
+        {{ graph.meta.facet_count }} highlights ·
+        {{ graph.meta.type_count }} types ·
+        Conflict edges {{ graph.meta.conflict_edges }} ·
+        Related edges {{ graph.meta.similar_edges }}
+        {% if graph.meta.hidden_event_count %}
+        · <a href="/memories?status=confirmed&amp;memory_type=event">{{ graph.meta.hidden_event_count }} event memories not shown</a>
+        {% endif %}
+      </p>
+    </div>
+    <div class="graph-actions">
+      <a class="chip" href="/profile">← Back to profile overview</a>
+      <button type="button" class="secondary" id="graph-reset">Reset view</button>
+    </div>
+  </header>
+
+  <div class="graph-shell">
+    <aside class="graph-legend panel">
+      <h3>Legend</h3>
+      <ul class="legend-list">
+        <li><span class="legend-swatch subject"></span> Profile subject</li>
+        <li><span class="legend-swatch type"></span> Type</li>
+        <li><span class="legend-swatch facet"></span> Highlight</li>
+        <li><span class="legend-line owns"></span> Ownership</li>
+        <li><span class="legend-line conflict"></span> Conflict</li>
+        <li><span class="legend-line similar"></span> Cross-type relation</li>
+      </ul>
+      {% if graph.meta.types %}
+      <h3>Types</h3>
+      <ul class="legend-list">
+        {% for t in graph.meta.types %}
+        <li><span class="dot" style="background:{{ t.color }}"></span> {{ t.label }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <div id="graph-detail" class="graph-detail muted">Click a node to see details</div>
+    </aside>
+
+    <div class="graph-canvas-wrap panel">
+      {% if graph.meta.facet_count == 0 and graph.meta.memory_count == 0 and not graph.meta.hidden_event_count %}
+      <div class="empty-hero" style="padding:3rem 1rem">
+        <div class="empty-orb" aria-hidden="true"></div>
+        <h2>The graph is still empty</h2>
+        <p class="muted">Once you confirm some memories, the subject, types, and highlights will appear here.</p>
+        <div class="row actions" style="justify-content:center; margin-top:1rem">
+          <a class="btn" href="/imports">Import</a>
+          <a class="btn secondary" href="/memories">Add a memory manually</a>
+          <a class="btn secondary" href="/profile">View profile overview</a>
+        </div>
+      </div>
+      {% else %}
+      <canvas id="memory-graph" width="960" height="640" aria-label="Profile graph"></canvas>
+      <script id="graph-data" type="application/json">{{ graph_data | safe }}</script>
+      <script src="/static/graph.js"></script>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="panel graph-text" aria-labelledby="graph-text-title">
+    <h2 id="graph-text-title">Text version of the graph</h2>
+    <p class="muted tiny">
+      This list matches the canvas, so screen readers and keyboard users can read everything.
+    </p>
+    <h3>Subject: {{ graph_outline.subject }}</h3>
+    {% if graph_outline.groups %}
+    <ul>
+      {% for group in graph_outline.groups %}
+      <li>{{ group.label }} ({{ group.count }} highlights)
+        <ul>
+          {% for item in group.entries %}
+          <li>
+            {% if item.href %}<a href="{{ item.href }}">{{ item.text }}</a>{% else %}{{ item.text }}{% endif %}
+            {% if item.meta %}<span class="muted tiny"> ({{ item.meta }})</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No highlights to list yet.</p>
+    {% endif %}
+
+    {% if graph_outline.relations %}
+    <h3>Relations between highlights</h3>
+    <ul>
+      {% for relation in graph_outline.relations %}
+      <li>{{ relation }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if graph.meta.hidden_event_count %}
+    <p class="muted tiny">
+      <a href="/memories?status=confirmed&amp;memory_type=event">{{ graph.meta.hidden_event_count }} event memories are not drawn on the graph</a>
+    </p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

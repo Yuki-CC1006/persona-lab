@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+<h1>Settings and privacy</h1>
+
+<section class="panel">
+  <h2>Model endpoint</h2>
+  {% if saved == 'llm' %}
+  <div class="alert success">Model endpoint settings saved</div>
+  {% endif %}
+  {% if llm_test %}
+  <div class="alert">{{ llm_test }}</div>
+  {% endif %}
+  <form action="/settings/llm" method="post" class="stack">
+    <input type="hidden" name="next" value="/settings" />
+    <div class="provider-grid">
+      {% for p in llm_providers %}
+      <label class="provider-card{% if p.id == llm_effective.provider.id %} selected{% endif %}">
+        <input type="radio" name="provider" value="{{ p.id }}"
+               {% if p.id == llm_effective.provider.id %}checked{% endif %} />
+        <strong>{{ p.label }}</strong>
+        <span class="muted tiny">{{ p.hint }}</span>
+        {% if p.id == llm_effective.provider.id and not llm_configured %}
+        <span class="chip warn">Not ready</span>
+        {% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    <div class="row">
+      <label>Endpoint URL
+        <input name="base_url" value="{{ llm_prefs.get('llm_base_url') or '' }}"
+               placeholder="{{ llm_effective.provider.base_url or 'http://127.0.0.1:11434/v1' }}" />
+      </label>
+      <label>Model name (required for local/custom endpoints)
+        <input name="model" value="{{ llm_prefs.get('llm_model') or '' }}"
+               placeholder="qwen3:8b / local-model" />
+      </label>
+    </div>
+    <div class="row actions">
+      <button type="submit">Save</button>
+      <button type="submit" name="test" value="1" class="secondary">Save and test connection</button>
+    </div>
+  </form>
+  <form action="/settings/llm/test" method="post">
+    <input type="hidden" name="next" value="/settings" />
+    <button type="submit" class="secondary">Test current connection only</button>
+  </form>
+  <p class="muted tiny">
+    Currently active: <code>{{ llm_effective.base_url or 'not set' }}</code> ·
+    model <code>{{ llm_effective.api_model or 'not set' }}</code> ·
+    {% if llm_effective.is_local %}local endpoint, data stays offline{% else %}cloud endpoint, requests leave this device{% endif %}
+  </p>
+  <p class="muted tiny">The API key is read only from <code>.env</code> in the project root (<code>LLM_API_KEY</code>) and is never written to the database or settings files.</p>
+</section>
+
+<section class="panel">
+  <h2>Does data leave this device?</h2>
+  <ul class="stats">
+    <li>Import and parsing: <strong>fully local</strong></li>
+    <li>Vector search: <strong>fully local</strong> (local hashing + SQLite FTS fallback)</li>
+    <li>Candidate extraction: {{ 'sent to ' + llm_effective.host + ' (redacted by rule)' if llm_effective.configured and not llm_effective.is_local else ('local endpoint, not sent out' if llm_effective.is_local else 'offline, not sent out') }}</li>
+    <li>Chat answers: {{ 'sent to ' + llm_effective.host + ' (raw conversation, not redacted)' if llm_effective.configured and not llm_effective.is_local else ('local endpoint, not sent out' if llm_effective.is_local else 'offline, not sent out') }}</li>
+    <li>Outbound records: {{ outbound_stats.total }}{% if outbound_stats.last_at %} · latest {{ outbound_stats.last_at }}{% endif %}</li>
+  </ul>
+  <p class="muted tiny">
+    Retrieval upgrade threshold: a new vector approach must lift the golden-set metric by ≥ {{ '%.0f'|format(embedding_switch_delta * 100) }}%, otherwise local hashing stays.
+    Compare with: <code>uv run python scripts/quality_baseline.py</code>
+  </p>
+  {% if outbound_events %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Time</th><th>Purpose</th><th>Endpoint</th><th>Model</th><th>Chars</th><th>Redacted</th><th>Result</th></tr></thead>
+      <tbody>
+      {% for e in outbound_events %}
+        <tr>
+          <td>{{ e.created_at }}</td>
+          <td>{{ e.purpose }}</td>
+          <td>{{ e.host }}</td>
+          <td>{{ e.model or '—' }}</td>
+          <td>{{ e.char_count }}</td>
+          <td>{{ 'Yes' if e.redacted else 'No' }}</td>
+          <td>{% if e.ok %}Success{% else %}Failed{% endif %}{% if e.error %} · {{ e.error }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted tiny">Only metadata is recorded (time, purpose, endpoint, character count, redaction); prompt content and keys are never recorded.</p>
+  {% else %}
+  <p class="muted tiny">No outbound requests yet. This stays empty when used offline.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>DeepSeek model</h2>
+  {% if saved == 'model' %}
+  <div class="alert success">Switched to {{ llm_choice.label }}</div>
+  {% endif %}
+  <form action="/settings/model" method="post" class="stack">
+    <input type="hidden" name="next" value="/settings" />
+    <div class="model-grid">
+      {% for m in llm_models %}
+      <label class="model-card{% if m.id == llm_choice.id %} selected{% endif %}">
+        <input type="radio" name="model" value="{{ m.id }}" {% if m.id == llm_choice.id %}checked{% endif %} />
+        <strong>{{ m.label }}</strong>
+        <span class="muted tiny">{{ m.hint }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="row actions">
+      <button type="submit">Apply</button>
+    </div>
+  </form>
+  <p class="muted tiny">Current API: <code>{{ llm_choice.api_model }}</code>{% if llm_choice.thinking %} · thinking mode{% endif %}{% if not llm_configured %} · no usable model endpoint configured; answers fall back to offline retrieval{% endif %}</p>
+</section>
+
+<section class="panel">
+  <h2>Advisor prompt</h2>
+  {% if saved == 'prompt' %}
+  <div class="alert success">Advisor prompt saved{% if not prompt_is_custom %} (currently the default){% endif %}</div>
+  {% endif %}
+  <p class="muted">The knowledge base is only a reference. When a topic falls outside the profile, the local scope gate declines it before the model sees it. You can change the persona; the system appends the knowledge-base usage guide automatically.</p>
+  <form action="/settings/prompt" method="post" class="stack">
+    <input type="hidden" name="next" value="/settings" />
+    <label>
+      System prompt
+      <textarea name="system_prompt" rows="12" maxlength="{{ max_prompt_chars }}">{{ system_prompt }}</textarea>
+    </label>
+    <div class="row actions">
+      <button type="submit">Save prompt</button>
+      <button type="submit" name="reset" value="1" class="secondary">Restore default</button>
+    </div>
+  </form>
+  {% if prompt_is_custom %}
+  <details class="prompt-default">
+    <summary class="muted tiny">View default prompt</summary>
+    <pre class="wrap">{{ default_system_prompt }}</pre>
+  </details>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Runtime status</h2>
+  <ul class="stats">
+    <li>Binding: {{ settings.bind_host }}:{{ settings.bind_port }}</li>
+    <li>Redaction: {{ 'on' if settings.redaction_enabled else 'off' }}</li>
+    <li>Model endpoint: {{ llm_effective.provider.label }} · {{ 'ready' if llm_configured else 'not ready' }}</li>
+    <li>Database: {{ settings.database_url }}</li>
+  </ul>
+  <p class="muted">AI addresses and models are configured under "Model endpoint"; the API key still lives only in <code>.env</code>.</p>
+</section>
+
+<section class="panel">
+  <h2>Hermes adapter (optional)</h2>
+  <p>Hermes is not a core dependency. Below is a condensed confirmed profile for later agent integration.</p>
+  <pre class="wrap">{{ hermes_profile.profile_text or '(no confirmed memories yet)' }}</pre>
+  <p class="muted">{{ hermes_profile.note }} · {{ hermes_profile.char_count }}/{{ hermes_profile.max_chars }} characters</p>
+</section>
+
+<section class="panel">
+  <h2>Usage cadence</h2>
+  <p class="muted tiny">Used to decide what to invest in next: MCP, sync, and collaboration wait until this data supports them.</p>
+  <ul class="stats">
+    <li>Active weeks in a row: {{ usage.active_weeks }}/4</li>
+    <li>Total questions: {{ usage.total_questions }}</li>
+    <li>Confirmed memories: {{ usage.total_confirmed }}</li>
+    <li>Last question: {{ usage.last_question_at or '—' }}</li>
+  </ul>
+  <div class="table-wrap">
+    <table>
+      <caption class="muted tiny">Weekly stats (newest first)</caption>
+      <thead><tr><th scope="col">Week</th><th scope="col">Questions</th><th scope="col">Confirmed</th><th scope="col">Candidates</th><th scope="col">Imports</th><th scope="col">Notes</th></tr></thead>
+      <tbody>
+      {% for w in usage.weeks %}
+        <tr>
+          <th scope="row">{{ w.label }}</th>
+          <td>{{ w.questions }}</td>
+          <td>{{ w.confirmed }}</td>
+          <td>{{ w.candidates }}</td>
+          <td>{{ w.imports }}</td>
+          <td>{{ w.diary }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <h3>Expansion gates</h3>
+  <ul class="gate-list">
+    {% for gate in usage.expansion_gates %}
+    <li>
+      <span class="chip {% if gate.ready %}ok{% endif %}">{{ 'Ready' if gate.ready else 'Not yet' }}</span>
+      <strong>{{ gate.label }}</strong>
+      <span class="muted tiny">{{ gate.detail }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Backup and restore</h2>
+  <p>Encrypt and export all data; preview the impact before restoring. Backups stay on this device.</p>
+  <a class="btn" href="/settings/backup">Open backup and restore</a>
+</section>
+
+<section class="panel danger-zone">
+  <h2>Danger zone</h2>
+  <p>Delete all imported messages, candidates, and confirmed memories. This cannot be undone; <a href="/settings/backup">encrypt a backup</a> first.</p>
+  <form action="/settings/wipe" method="post" onsubmit="return confirm('Erase all data?')">
+    <button type="submit" class="danger">Erase all data</button>
+  </form>
+</section>
+</div>
+{% endblock %}

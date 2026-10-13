@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Page not found · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <section class="panel empty-profile">
+    <div class="empty-hero">
+      <div class="empty-orb" aria-hidden="true"></div>
+      <h2>Page not found</h2>
+      <p class="muted">The path doesn't exist, or the server is still running an older version. Go back home, or restart and try again.</p>
+      <div class="row actions" style="justify-content:center; margin-top:1rem">
+        <a class="btn" href="/">Back to chat home</a>
+        <a class="btn secondary" href="/profile">Profile overview</a>
+        <a class="btn secondary" href="/imports">Import chats</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Search · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+<h1>Hybrid search</h1>
+<section class="panel">
+  <form method="get" action="/search" class="row">
+    <input name="q" value="{{ q }}" placeholder="Keyword / question clue" aria-label="Search by keyword or question clue" style="flex:1" />
+    <button type="submit">Search</button>
+  </form>
+</section>
+
+{% if q %}
+<section class="panel">
+  <h2>Results ({{ hits|length }})</h2>
+  {% if hits %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>ID</th><th>Score</th><th>Content</th><th>Metadata</th></tr></thead>
+      <tbody>
+      {% for h in hits %}
+        <tr>
+          <td>{{ h.kind }}</td>
+          <td>
+            {% if h.kind == 'memory' %}
+              <a href="/memories/{{ h.id }}">#{{ h.id }}</a>
+            {% else %}
+              #{{ h.id }}
+            {% endif %}
+          </td>
+          <td>{{ '%.3f'|format(h.score) }}</td>
+          <td>{{ h.content[:240] }}</td>
+          <td><code>{{ h.meta }}</code></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No results.</p>
+  {% endif %}
+</section>
+{% endif %}
+</div>
+{% endblock %}

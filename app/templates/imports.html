@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Import · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <header class="page-hero">
+    <div>
+      <p class="eyebrow">Import</p>
+      <h1>Import your chats</h1>
+      <p class="lead">WeChat JSON / JSONL, plain text, and Markdown all work. Preview the fields and redaction first, then write to the local knowledge base.</p>
+    </div>
+    <div class="format-chips">
+      <span class="chip">WeFlow session JSON</span>
+      <span class="chip">JSON array</span>
+      <span class="chip">JSONL</span>
+      <span class="chip">Plain text / Markdown</span>
+    </div>
+  </header>
+
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  {% if deleted %}
+  <div class="alert success">
+    Deleted import #{{ deleted }}: removed {{ deleted_summary.messages }} messages and {{ deleted_summary.candidates }} candidate memories.
+    {% if deleted_summary.orphans and deleted_summary.orphans != '0' %}
+    {{ deleted_summary.orphans }} confirmed memories were kept but lost their evidence references; review them in
+    <a href="/memories">Memories</a>.
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <section class="panel upload-panel">
+    <form id="import-form" action="/imports/preview" method="post" enctype="multipart/form-data" class="stack">
+      <div class="source-switch" role="tablist" aria-label="Import method">
+        <button type="button" class="source-tab active" data-source-tab="file" role="tab" aria-selected="true">Upload file</button>
+        <button type="button" class="source-tab" data-source-tab="text" role="tab" aria-selected="false">Paste text</button>
+      </div>
+      <input type="hidden" name="source" id="source-input" value="" />
+
+      <div class="source-pane" data-source-pane="file">
+        <label class="dropzone" id="dropzone" for="file-input">
+          <input id="file-input" type="file" name="file" accept=".json,.jsonl,.txt,.md,.log" hidden />
+          <div class="dropzone-icon" aria-hidden="true">⬆</div>
+          <div class="dropzone-title">Drag a file here or click to choose</div>
+          <div class="dropzone-sub muted">Supports .json / .jsonl / .txt / .md · stays on this device</div>
+          <div class="dropzone-file" id="file-name">No file selected</div>
+        </label>
+      </div>
+
+      <div class="source-pane" data-source-pane="text" hidden>
+        <label>Paste chat content
+          <textarea
+            name="text"
+            rows="10"
+            id="paste-input"
+            placeholder="Alex: likes mildly spicy hotpot&#10;Me: then I'll take you next time&#10;[2026-03-01 21:00] Alex: sounds good"
+          ></textarea>
+        </label>
+        <p class="muted tiny">Write each line as "nickname: content"; with a timestamp, use "[2026-03-01 21:00] nickname: content".</p>
+      </div>
+
+      <div class="row actions upload-actions">
+        <button type="submit" class="btn-primary" id="preview-btn">Preview and continue</button>
+        <span class="muted tiny">Preview does not write to the database</span>
+      </div>
+    </form>
+
+    <div class="sample-cta">
+      <span class="muted tiny">No data? Walk through a built-in fictional sample:</span>
+      <div class="row">
+        <form action="/imports/sample" method="post">
+          <input type="hidden" name="sample" value="weflow" />
+          <button type="submit" class="secondary">Try the WeFlow sample</button>
+        </form>
+        <form action="/imports/sample" method="post">
+          <input type="hidden" name="sample" value="wechat" />
+          <button type="submit" class="secondary">Try the generic JSON sample</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  {% if preview %}
+  <section class="panel preview-panel">
+    <div class="panel-head">
+      <h2>Preview result</h2>
+      <div class="meta-chips">
+        <span class="chip ok">{{ preview.format_name }}</span>
+        <span class="chip">{{ preview.total_rows }} messages</span>
+        <span class="chip">hash {{ preview.file_hash[:12] }}…</span>
+      </div>
+    </div>
+
+    {% if preview.errors %}
+    <div class="alert warn">
+      {% for e in preview.errors %}<div>{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h3>Detected fields</h3>
+        <div class="tag-list">
+          {% for f in preview.detected_fields %}
+          <span class="tag">{{ f }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="info-card">
+        <h3>Suggested mapping</h3>
+        <pre class="code-block">{{ mapping_json }}</pre>
+      </div>
+    </div>
+
+    <h3>Sample messages</h3>
+    <div class="sample-list">
+      {% for row in preview.sample %}
+      <article class="sample-msg">
+        <div class="sample-meta">
+          <strong>{{ row.sender or '—' }}</strong>
+          <span class="muted">{{ row.timestamp or 'no timestamp' }}</span>
+          <span class="chip">{{ row.msg_type or 'text' }}</span>
+        </div>
+        <p>{{ row.content }}</p>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% if redaction_preview %}
+    <h3>Redaction preview</h3>
+    <p class="muted tiny">This is the form sent to the cloud model; the original content still stays local.</p>
+    <div class="sample-list">
+      {% for r in redaction_preview %}
+      <article class="sample-msg redact-pair">
+        <div>
+          <div class="tiny muted">Original</div>
+          <p>{{ r.original }}</p>
+        </div>
+        <div>
+          <div class="tiny muted">Redacted{% if r.replacements %} · {{ r.replacements }}{% endif %}</div>
+          <p>{{ r.redacted }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="commit-box">
+      <h3>Confirm import</h3>
+      <form action="/imports/commit" method="post" class="stack">
+        <input type="hidden" name="upload_path" value="{{ upload_path }}" />
+        {% set senders = preview.senders or [] %}
+        <div class="row">
+          <label>Profile subject nickname (them)
+            <input name="subject_name" value="{{ senders[0] if senders|length == 2 else '' }}" placeholder="Their nickname as shown in the chat" />
+          </label>
+          <label>Partner nickname (you)
+            <input name="partner_name" value="{{ senders[1] if senders|length == 2 else '' }}" placeholder="Your nickname" />
+          </label>
+        </div>
+        {% if preview.source %}
+        <input type="hidden" name="source" value="{{ preview.source }}" />
+        {% endif %}
+        <label>Field mapping JSON
+          <textarea name="mapping_json" rows="3">{{ mapping_json }}</textarea>
+        </label>
+        <label class="inline check-line">
+          <input type="checkbox" name="run_analysis" value="yes" checked />
+          Extract candidate memories with DeepSeek right after import
+        </label>
+        <div class="row actions">
+          <button type="submit">Write to the knowledge base</button>
+        </div>
+      </form>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Import history</h2>
+      {% if jobs %}<span class="muted tiny">{{ jobs|length }} records</span>{% endif %}
+    </div>
+
+    {% if jobs %}
+    <div class="job-list">
+      {% for j in jobs %}
+      <a class="job-card" href="/imports/{{ j.id }}">
+        <div class="job-icon">📄</div>
+        <div class="job-body">
+          <div class="job-title">{{ j.filename }}</div>
+          <div class="job-sub muted">
+            #{{ j.id }} · {{ j.message_count }} messages · skipped {{ j.skipped_count }} · {{ j.created_at }}
+          </div>
+        </div>
+        <span class="chip {% if j.status == 'completed' %}ok{% endif %}">{{ j.status }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">Inbox</div>
+      <h3>No imports yet</h3>
+      <p class="muted">Upload a WeChat export and the history will show up here.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

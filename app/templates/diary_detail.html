@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Note #{{ entry.id }} · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <header class="page-hero">
+    <div>
+      <p class="eyebrow">Note #{{ entry.id }}</p>
+      <h1>{{ entry.title or 'Untitled note' }}</h1>
+      <p class="lead muted">
+        {{ entry.entry_date.strftime('%Y-%m-%d') if entry.entry_date else '—' }}
+        · Status {{ entry.status }}
+        · {{ entry.candidates_created or 0 }} distilled
+      </p>
+    </div>
+    <div class="format-chips">
+      <a class="chip" href="/diary">← Back to list</a>
+      <a class="chip" href="/memories/candidates">Review candidates</a>
+    </div>
+  </header>
+
+  <section class="panel">
+    <form action="/diary/{{ entry.id }}/update" method="post" class="stack">
+      <div class="row">
+        <label>Date
+          <input type="date" name="entry_date" value="{{ entry_date_value }}" />
+        </label>
+        <label>Title
+          <input name="title" value="{{ entry.title or '' }}" />
+        </label>
+        <label>Mood
+          <input name="mood" value="{{ entry.mood or '' }}" />
+        </label>
+      </div>
+      <label>Subject nickname
+        <input name="subject_name" value="{{ entry.subject_name or '' }}" placeholder="e.g. Alex" />
+      </label>
+      <label>Body
+        <textarea name="content" rows="10" required>{{ entry.content }}</textarea>
+      </label>
+      <div class="row actions">
+        <button type="submit">Save changes</button>
+        <button formaction="/diary/{{ entry.id }}/extract" formmethod="post" class="secondary">
+          Distill with AI
+        </button>
+        <button formaction="/diary/{{ entry.id }}/delete" formmethod="post" class="danger"
+                onclick="return confirm('Delete this note?')">Delete</button>
+      </div>
+      {% if not llm_configured %}
+      <p class="muted tiny">Without DeepSeek configured, offline rules distill candidate memories from the text.</p>
+      {% endif %}
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Distilled memories</h2>
+      <span class="muted tiny">{{ linked|length }}</span>
+    </div>
+    {% if linked %}
+    <div class="memory-chips">
+      {% for m in linked %}
+      <a class="memory-chip" href="/memories/{{ m.id }}">
+        <span class="memory-chip-text">
+          <span class="chip">{{ m.memory_type }}</span>
+          <span class="chip {% if m.status == 'confirmed' %}ok{% elif m.status == 'candidate' %}warn{% endif %}">{{ m.status }}</span>
+          {{ m.content }}
+        </span>
+        <span class="memory-chip-meta">{{ '%.0f'|format(m.confidence * 100) }}%</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">No memories distilled from this note yet. Click "Distill with AI" above.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

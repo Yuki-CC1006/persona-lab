@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="app-brand" content="{{ brand }}" />
+  <title>{% block title %}{{ brand }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <a class="logo" href="/">
+          <span class="logo-mark" aria-hidden="true"></span>
+          <span>{{ brand }}</span>
+        </a>
+        <a class="nav-item new-chat{% if request.url.path == '/' or request.url.path == '/chat' %} active{% endif %}" href="/">
+          <span class="ico" aria-hidden="true">✎</span> Start new chat
+        </a>
+        <nav class="side-nav" aria-label="Main navigation">
+          <a class="nav-item {% if request.url.path.startswith('/profile') %}active{% endif %}" href="/profile"{% if request.url.path.startswith('/profile') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">◎</span> Profile overview
+          </a>
+          <a class="nav-item {% if request.url.path.startswith('/search') %}active{% endif %}" href="/search"{% if request.url.path.startswith('/search') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">⌕</span> Search memories
+          </a>
+          <a class="nav-item {% if request.url.path.startswith('/diary') %}active{% endif %}" href="/diary"{% if request.url.path.startswith('/diary') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">✎</span> Notes
+          </a>
+          <a class="nav-item {% if request.url.path.startswith('/imports') %}active{% endif %}" href="/imports"{% if request.url.path.startswith('/imports') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">＋</span> Import chats
+          </a>
+          <a class="nav-item {% if request.url.path.startswith('/memories/candidates') %}active{% endif %}" href="/memories/candidates"{% if request.url.path.startswith('/memories/candidates') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">✓</span> Review candidates
+            {% if candidate_count %}<span class="pill-count">{{ candidate_count }}</span>{% endif %}
+          </a>
+          <a class="nav-item {% if request.url.path.startswith('/memories') and not request.url.path.startswith('/memories/candidates') %}active{% endif %}" href="/memories"{% if request.url.path.startswith('/memories') and not request.url.path.startswith('/memories/candidates') %} aria-current="page"{% endif %}>
+            <span class="ico" aria-hidden="true">▣</span> Memories
+          </a>
+        </nav>
+      </div>
+      <div class="sidebar-mid">
+        {% if chat_threads %}
+        <div class="section-label">Recent</div>
+        {% for t in chat_threads %}
+        <div class="history-row{% if active_thread_id == t.id %} active{% endif %}" data-thread-id="{{ t.id }}">
+          <a class="history-item{% if active_thread_id == t.id %} active{% endif %}" href="/chat/{{ t.id }}" title="{{ t.title }}">{{ t.title }}</a>
+          <details class="history-more">
+            <summary title="More" aria-label="More">⋮</summary>
+            <div class="history-menu" role="menu">
+              <button type="button" class="menu-item" data-rename>Rename</button>
+              <form action="/chat/{{ t.id }}/delete" method="post" onsubmit="return confirm('Delete this chat?')">
+                <button type="submit" class="menu-item danger">Delete</button>
+              </form>
+            </div>
+          </details>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+      <div class="sidebar-bottom">
+        <div class="profile">
+          <div class="avatar" aria-hidden="true">P</div>
+          <div class="profile-text">
+            <div class="name">Local profile</div>
+            <div class="sub">{{ confirmed_count or 0 }} confirmed memories</div>
+          </div>
+          <a class="gear" href="/settings" title="Settings" aria-label="Settings">⚙</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main" tabindex="-1">
+      {% block main %}{% endblock %}
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Backup and restore · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <h1>Backup and restore</h1>
+  <p class="muted">
+    Backups are encrypted and stored locally; the passphrase is never written to disk. Restoring wipes current data first, so always check the preview.
+  </p>
+
+  {% if saved == 'export' %}
+  <div class="alert success">Encrypted backup created{% if request.query_params.get('name') %}: {{ request.query_params.get('name') }}{% endif %}</div>
+  {% elif saved == 'restore' %}
+  <div class="alert success">Restore complete; {{ request.query_params.get('rows') }} rows written back</div>
+  {% elif saved == 'deleted' %}
+  <div class="alert success">Backup file deleted</div>
+  {% endif %}
+  {% if error %}
+  <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  <section class="panel">
+    <h2>Encrypted export</h2>
+    <form action="/settings/backup/export" method="post">
+      <label for="passphrase">Backup passphrase</label>
+      <input id="passphrase" name="passphrase" type="password" autocomplete="new-password"
+             minlength="6" required aria-describedby="passphrase-hint" />
+      <label for="passphrase2">Enter it again</label>
+      <input id="passphrase2" name="passphrase2" type="password" autocomplete="new-password"
+             minlength="6" required />
+      <p class="muted tiny" id="passphrase-hint">
+        At least 6 characters. If you forget it, the backup cannot be restored and the app cannot recover it.
+      </p>
+      <button class="btn" type="submit">Export and save to data/backups</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Local backup files</h2>
+    <p class="muted tiny">Keeps the newest {{ keep }}; older ones are cleaned up automatically.</p>
+    {% if backups %}
+    <div class="table-wrap">
+      <table>
+        <caption class="muted tiny">Newest first</caption>
+        <thead><tr><th scope="col">File</th><th scope="col">Size</th><th scope="col">Time</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+        {% for b in backups %}
+          <tr>
+            <th scope="row">{{ b.name }}</th>
+            <td>{{ b.size_kb }} KB</td>
+            <td>{{ b.modified }}</td>
+            <td>
+              <form action="/settings/backup/{{ b.name }}/delete" method="post"
+                    onsubmit="return confirm('Delete backup {{ b.name }}?')">
+                <button class="secondary" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">No backup files yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Restore (preview the impact first)</h2>
+    <form action="/settings/backup/restore/preview" method="post" enctype="multipart/form-data">
+      <label for="backup-file">Backup file (.personabak)</label>
+      <input id="backup-file" name="file" type="file" accept=".personabak,.json,application/json" required />
+      <label for="restore-passphrase">Backup passphrase</label>
+      <input id="restore-passphrase" name="passphrase" type="password" autocomplete="current-password"
+             required aria-describedby="restore-hint" />
+      <p class="muted tiny" id="restore-hint">A wrong passphrase or a modified file fails here immediately and leaves existing data untouched.</p>
+      <button class="secondary" type="submit">Decrypt and preview</button>
+    </form>
+  </section>
+
+  {% if preview %}
+  <section class="panel" aria-labelledby="preview-title">
+    <h2 id="preview-title">Restore preview</h2>
+    <ul class="stats">
+      <li>Backup time: {{ preview.created_at }}</li>
+      <li>Rows in backup: {{ preview.total_in_backup }}</li>
+      <li>Current rows: {{ preview.total_now }}</li>
+    </ul>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Data</th><th scope="col">In backup</th><th scope="col">Current</th></tr></thead>
+        <tbody>
+        {% for name, row in preview.tables.items() %}
+          <tr>
+            <th scope="row">{{ name }}</th>
+            <td>{{ row.in_backup }}</td>
+            <td>{{ row.now }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for warning in preview.warnings %}
+    <p class="alert warn-text">{{ warning }}</p>
+    {% endfor %}
+    <form action="/settings/backup/restore" method="post"
+          onsubmit="return confirm('Overwrite all current data with this backup?')">
+      <input type="hidden" name="token" value="{{ token }}" />
+      <button class="danger" type="submit">Confirm restore and overwrite current data</button>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

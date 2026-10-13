@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{% if thread %}{{ thread.title }} · {{ brand }}{% else %}{{ brand }}{% endif %}{% endblock %}
+{% block body_class %}chat-home{% endblock %}
+{% block main %}
+{% macro composer(placeholder) -%}
+<form id="chat-form" action="/chat/ask" method="post">
+  {% if thread %}<input type="hidden" name="thread_id" value="{{ thread.id }}" />{% endif %}
+</form>
+<form id="model-form" action="/settings/model" method="post">
+  <input type="hidden" name="next" value="{% if thread %}/chat/{{ thread.id }}{% else %}/{% endif %}" />
+</form>
+<div class="prompt-pill">
+  <a class="attach-btn" href="/imports" title="Import chats">＋</a>
+  <input
+    form="chat-form"
+    id="prompt-input"
+    class="prompt-input"
+    name="question"
+    type="text"
+    autocomplete="off"
+    required
+    placeholder="{{ placeholder }}"
+    aria-label="Ask a question or enter a memory clue"
+    value="{{ prefill or '' }}"
+  />
+  <select form="model-form" name="model" class="model-select" onchange="this.form.submit()" title="Switch model" aria-label="Switch model">
+    {% for m in llm_models %}
+    <option value="{{ m.id }}" {% if m.id == llm_choice.id %}selected{% endif %}>{{ m.label }}</option>
+    {% endfor %}
+  </select>
+  <select form="chat-form" id="mode-select" class="mode-select" name="mode" aria-label="Choose how to answer">
+    <option value="ask" {% if mode != 'tendency' %}selected{% endif %}>Look up my notes</option>
+    <option value="tendency" {% if mode == 'tendency' %}selected{% endif %}>Situation inference (experimental)</option>
+  </select>
+  <button form="chat-form" class="send-btn" type="submit" title="Send">↑</button>
+</div>
+{%- endmacro %}
+
+<div class="chat-stage">
+  {% if not messages %}
+  <div class="chat-empty">
+    <h1 class="greeting">What can I help you with?</h1>
+    <div class="prompt-shell">
+      {{ composer('Ask something about them…') }}
+    </div>
+    {% if confirmed_count == 0 %}
+    <div class="suggest-row" aria-label="Start building a profile">
+      <a class="suggest" href="/imports">Import chats</a>
+      <a class="suggest" href="/diary">Write a note</a>
+      <a class="suggest" href="/memories">Add a memory manually</a>
+    </div>
+    <p class="muted tiny">Add a few confirmed memories first, and answers will cite your data. The import page has a fictional sample you can run end to end.</p>
+    {% else %}
+    <div class="suggest-row" aria-label="Example questions">
+      {% for s in suggestions or [] %}
+      <button class="suggest" type="button" data-suggest="{{ s }}">{{ s }}</button>
+      {% endfor %}
+      <button class="suggest" type="button" data-suggest="What are their clear preferences?">Summarize their preferences</button>
+      <button class="suggest" type="button" data-suggest="What should I keep in mind when we talk?">Review communication habits</button>
+      <button class="suggest" type="button" data-suggest="If plans change at the last minute, how might they feel?" data-mode="tendency">Situation inference (experimental)</button>
+    </div>
+    <p class="muted tiny">Answers cite confirmed memories first; when evidence is thin, it says so.</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="chat-thread">
+    {% for m in messages %}
+    <div class="msg {{ m.role }}">
+      <div class="msg-avatar">{% if m.role == 'user' %}You{% else %}{% endif %}</div>
+      <div class="msg-body">
+        <div class="msg-role">{% if m.role == 'user' %}You{% else %}{{ brand }}{% endif %}</div>
+        {% if m.role != 'user' and m.thinking %}
+        <details class="thinking">
+          <summary>Thinking</summary>
+          <div class="thinking-body">{{ m.thinking }}</div>
+        </details>
+        {% endif %}
+        <div class="msg-text{% if m.role != 'user' %} prose{% endif %}">{% if m.role == 'user' %}{{ m.content }}{% else %}{{ m.content | answer_md }}{% endif %}</div>
+        {% if m.meta_chips %}
+        <div class="meta-chips">
+          {% for c in m.meta_chips %}
+          <span class="chip {{ c.class or '' }}">{{ c.text }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if m.distilled %}
+        <div class="distill-note muted tiny">
+          {% for d in m.distilled %}
+          <p>
+            {% if d.action|default('add') == 'replace' %}
+              Corrected: {% if d.replaced %}<s>{{ d.replaced }}</s> → {% endif %}{{ d.content }}
+            {% elif d.action == 'retract' %}
+              Retracted: <s>{{ d.replaced or d.content }}</s>
+            {% else %}
+              Saved: {{ d.content }}
+            {% endif %}
+            <a href="/memories/{{ d.id }}">View</a>
+          </p>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if m.evidence %}
+        <details class="evidence">
+          <summary>Referenced {{ m.evidence|length }} memories</summary>
+          <ul>
+            {% for e in m.evidence %}
+            <li>
+              {% if e.kind == 'memory' or e.memory_id %}
+                <a href="/memories/{{ e.memory_id or e.id }}">Memory #{{ e.memory_id or e.id }}</a>
+              {% else %}
+                Message #{{ e.id }}
+              {% endif %}
+              · {{ e.content }}
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+        {% if m.support %}
+        <details class="evidence">
+          <summary>Referenced memories</summary>
+          <ul>
+            {% for e in m.support %}
+            <li><a href="/memories/{{ e.memory_id }}">#{{ e.memory_id }}</a> {{ e.content }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+        {% if m.counter %}
+        <details class="evidence">
+          <summary>Counterexamples</summary>
+          <ul>
+            {% for e in m.counter %}
+            <li><a href="/memories/{{ e.memory_id }}">#{{ e.memory_id }}</a> {{ e.content }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="composer-dock">
+    {{ composer('Ask a follow-up…') }}
+    <div class="fineprint">Say "remember" or "correct" to update the profile · expand answers to see the evidence</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

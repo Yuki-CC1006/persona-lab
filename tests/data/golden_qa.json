@@ -1,0 +1,100 @@
+{
+  "description": "Retrieval and refusal quality golden set. Used only for offline evaluation and regression protection; it never enters runtime data.",
+  "profile": [
+    {"content": "Alex is afraid of horror movies", "memory_type": "aversion", "subject": "Alex"},
+    {"content": "Alex dislikes cilantro", "memory_type": "aversion", "subject": "Alex"},
+    {"content": "Alex can't stand people sending bursts of messages late at night", "memory_type": "aversion", "subject": "Alex"},
+    {"content": "Alex likes unsweetened Americano", "memory_type": "preference", "subject": "Alex"},
+    {"content": "Alex likes hot soy milk", "memory_type": "preference", "subject": "Alex"},
+    {"content": "Alex likes mildly spicy hotpot", "memory_type": "preference", "subject": "Alex"},
+    {"content": "Alex would rather stay home on weekends", "memory_type": "habit", "subject": "Alex"},
+    {"content": "Alex usually sleeps until they wake up naturally", "memory_type": "habit", "subject": "Alex"},
+    {"content": "Alex hates last-minute plan changes", "memory_type": "communication", "subject": "Alex"},
+    {"content": "Best to tell Alex a day ahead", "memory_type": "communication", "subject": "Alex"},
+    {"content": "Alex plans to take the postgraduate exam", "memory_type": "plan", "subject": "Alex"},
+    {"content": "Alex plans to start an internship next semester", "memory_type": "plan", "subject": "Alex"},
+    {"content": "Alex lives in Xi'an now", "memory_type": "fact", "subject": "Alex"},
+    {
+      "content": "Alex used to not handle spicy food well",
+      "memory_type": "preference",
+      "subject": "Alex",
+      "valid_to": "2026-01-01T00:00:00"
+    },
+    {
+      "content": "Alex can handle medium spicy now",
+      "memory_type": "preference",
+      "subject": "Alex",
+      "valid_from": "2026-01-01T00:00:00"
+    },
+    {"content": "Sam likes cycling", "memory_type": "preference", "subject": "Sam"},
+    {"content": "Sam dislikes spring onion", "memory_type": "aversion", "subject": "Sam"}
+  ],
+  "cases": [
+    {
+      "id": "aversion-recall",
+      "question": "What does Alex dislike?",
+      "expect_any": ["horror", "cilantro", "late at night"]
+    },
+    {
+      "id": "preference-recall",
+      "question": "What does Alex like to drink?",
+      "expect_any": ["Americano", "soy milk"]
+    },
+    {
+      "id": "habit-recall",
+      "question": "What does Alex usually do on weekends?",
+      "expect_any": ["weekend", "home", "sleep"]
+    },
+    {
+      "id": "communication-recall",
+      "question": "What should I keep in mind when asking Alex out?",
+      "expect_any": ["ahead", "last-minute"]
+    },
+    {
+      "id": "plan-recall",
+      "question": "What is Alex planning lately?",
+      "expect_any": ["postgraduate", "internship"]
+    },
+    {
+      "id": "fact-recall",
+      "question": "Where does Alex live now?",
+      "expect_any": ["Xi'an"]
+    },
+    {
+      "id": "temporal-current",
+      "question": "Can Alex handle spicy food now?",
+      "expect_any": ["medium spicy", "can handle"]
+    },
+    {
+      "id": "subject-boundary-aversion",
+      "question": "What does Sam dislike?",
+      "expect_any": ["spring onion"],
+      "forbid": ["horror", "cilantro"]
+    },
+    {
+      "id": "subject-boundary-preference",
+      "question": "What does Sam like?",
+      "expect_any": ["cycling"],
+      "forbid": ["Americano", "soy milk", "hotpot"]
+    },
+    {
+      "id": "no-refusal-in-scope",
+      "question": "If plans change at the last minute, how might Alex feel?",
+      "mode": "tendency",
+      "expect_refusal": false,
+      "expect_any": ["last-minute", "plan"]
+    },
+    {
+      "id": "refusal-out-of-scope",
+      "question": "What is the decoherence mechanism in quantum computing?",
+      "mode": "tendency",
+      "expect_refusal": true
+    },
+    {
+      "id": "refusal-unrelated-request",
+      "question": "Write me a quicksort in python",
+      "mode": "tendency",
+      "expect_refusal": true
+    }
+  ]
+}

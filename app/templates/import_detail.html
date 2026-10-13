@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Import #{{ job.id }} · {{ brand }}{% endblock %}
+{% block main %}
+<div class="page">
+  <h1>Import job #{{ job.id }}</h1>
+
+  {% if next_steps %}
+  <section class="panel next-steps">
+    <div class="panel-head">
+      <h2>What to do next</h2>
+      <span class="muted tiny">{{ next_steps.message_count }} messages · {{ next_steps.pending_candidates }} candidates to review</span>
+    </div>
+    <ol class="step-list">
+      {% for s in next_steps.steps %}
+      <li class="{% if s.done %}done{% endif %}">
+        <a href="{{ s.href }}">{{ s.label }}</a>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if next_steps.questions %}
+    <p class="muted tiny">Try these questions to check that your data is citable:</p>
+    <div class="suggest-row">
+      {% for q in next_steps.questions %}
+      <a class="suggest" href="/?q={{ q|urlencode }}">{{ q }}</a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted tiny">Confirm memories on the candidates page first, then come back to ask; answers will cite your data.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="panel">
+  <ul class="stats">
+    <li>File: {{ job.filename }}</li>
+    <li>Status: {{ job.status }}</li>
+    <li>Messages written: {{ job.message_count }}</li>
+    <li>Skipped: {{ job.skipped_count }}</li>
+    <li>Subject: {{ job.subject_name or '—' }}</li>
+    <li>Partner: {{ job.partner_name or '—' }}</li>
+  </ul>
+  <form action="/imports/{{ job.id }}/analyze" method="post">
+    <button type="submit">Re-run AI extraction</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Analysis runs</h2>
+  {% if runs %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>Status</th><th>Progress</th><th>Candidates</th><th>Model</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for r in runs %}
+        <tr>
+          <td>#{{ r.id }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.chunk_done }}/{{ r.chunk_total }}</td>
+          <td>{{ r.candidates_created }}</td>
+          <td>{{ r.model or '—' }}</td>
+          <td>{{ r.error_message or '' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No analysis runs yet.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Message preview (up to 100)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>Time</th><th>Sender</th><th>Role</th><th>Type</th><th>Content</th></tr></thead>
+      <tbody>
+      {% for m in messages %}
+        <tr>
+          <td>{{ m.id }}</td>
+          <td>{{ m.sent_at or '—' }}</td>
+          <td>{{ m.sender }}</td>
+          <td>{{ m.sender_role }}</td>
+          <td>{{ m.msg_type }}</td>
+          <td>{{ m.content[:200] }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel danger-zone" aria-labelledby="delete-import-title">
+  <h2 id="delete-import-title">Delete this import</h2>
+  <ul class="stats">
+    <li>Messages: {{ impact.message_count }}</li>
+    <li>Chunks: {{ impact.chunk_count }}</li>
+    <li>Analysis runs: {{ impact.run_count }}</li>
+    <li>Candidate memories from this import: {{ impact.derived_count }}</li>
+    <li>Linked evidence: {{ impact.evidence_count }}</li>
+    <li>Confirmed memories kept but left without evidence: {{ impact.orphaned_count }}</li>
+  </ul>
+  {% if impact.sample %}
+  <p class="muted tiny">Confirmed memories that will be kept (their evidence source will disappear):</p>
+  <ul class="muted tiny">
+    {% for text in impact.sample %}
+    <li>{{ text }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <p>Confirmed memories are not deleted, but the evidence references above will disappear with them; candidate memories and messages cannot be recovered.</p>
+  <form action="/imports/{{ job.id }}/delete" method="post"
+        onsubmit="return confirm('Delete the messages and candidate memories from import #{{ job.id }}?')">
+    <input type="hidden" name="confirm" value="yes" />
+    <button type="submit" class="danger">Delete this import</button>
+  </form>
+</section>
+</div>
+{% endblock %}

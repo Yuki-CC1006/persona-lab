@@ -1,0 +1,93 @@
+{
+  "session": {
+    "wxid": "wxid_sample_contact",
+    "nickname": "Alex",
+    "remark": "Alex",
+    "displayName": "Alex",
+    "type": "friend",
+    "lastTimestamp": 1741218435,
+    "messageCount": 8
+  },
+  "messages": [
+    {
+      "localId": "1",
+      "createTime": 1740787920,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "I want an unsweetened Americano today, not too bitter",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "2",
+      "createTime": 1740787980,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "Okay, I'll note that down. Do you usually prefer staying home or going out on weekends?",
+      "isSend": true,
+      "senderUsername": "wxid_sample_self",
+      "senderDisplayName": "Sam"
+    },
+    {
+      "localId": "3",
+      "createTime": 1740788045,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "On weekends I'd rather stay home and watch movies; crowds wear me out",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "4",
+      "createTime": 1740788100,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "Oh and please don't order cilantro for me again, I really don't like it",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "5",
+      "createTime": 1740788160,
+      "type": "引用消息",
+      "localType": "引用",
+      "content": "After working late on Friday I don't really want last-minute plan changes; better to tell me a day ahead",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "6",
+      "createTime": 1740788220,
+      "type": "图片消息",
+      "localType": "图片",
+      "content": "[Image]",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "7",
+      "createTime": 1740957420,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "My mom is visiting next week, so don't bring up work stress then",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    },
+    {
+      "localId": "8",
+      "createTime": 1740957480,
+      "type": "文本消息",
+      "localType": "文本",
+      "content": "Okay, but the hotpot should be mildly spicy; my stomach hasn't been great lately",
+      "isSend": false,
+      "senderUsername": "wxid_sample_contact",
+      "senderDisplayName": "Alex"
+    }
+  ]
+}
